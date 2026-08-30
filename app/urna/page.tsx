@@ -168,7 +168,8 @@ function UrnaContent() {
 
   if (statusUrna === 'bloqueada') {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900 text-white relative">
+      // 👇 A mágica do gradiente acontece aqui na classe bg-gradient-to-br 👇
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-white relative">
         <button 
           onClick={fazerLogout} 
           className="absolute top-8 right-8 bg-gray-700 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-colors border-2 border-gray-600"

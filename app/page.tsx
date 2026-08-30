@@ -28,7 +28,8 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-900 text-black">
+    // 👇 O fundo gradiente foi aplicado nesta linha 👇
+    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-black">
       <div className="p-8 bg-white border rounded shadow-lg max-w-sm w-full">
         <h2 className="mb-6 text-2xl font-bold text-center">
           {modo === 'login' ? 'Acesso ao Painel' : 'Nova Escola'}

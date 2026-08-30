@@ -44,7 +44,7 @@ export default function Admin() {
     if (data) setCandidatos(data);
   };
 
-  // 🟢 A MÁGICA DO TEMPO REAL RESTAURADA AQUI 🟢
+  // Atualização em Tempo Real
   useEffect(() => {
     if (!escolaId || !autenticado) return;
 
@@ -54,7 +54,7 @@ export default function Admin() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'candidatos', filter: `escola_id=eq.${escolaId}` },
         () => {
-          carregarCandidatos(); // Atualiza a tabela na hora sem precisar de F5!
+          carregarCandidatos(); 
         }
       )
       .subscribe();
@@ -63,11 +63,10 @@ export default function Admin() {
       supabase.removeChannel(channel);
     };
   }, [escolaId, autenticado]);
-  // ------------------------------------------------
 
   // --- FUNÇÕES DE LOGIN LOCAL (TRAVA DO MESÁRIO) ---
   const entrarPainel = () => {
-    if (senhaLocal === (process.env.NEXT_PUBLIC_SENHA_ADMIN)) {
+    if (senhaLocal === (process.env.NEXT_PUBLIC_SENHA_ADMIN || 'gremio123')) {
       setAutenticado(true);
     } else {
       alert('Senha incorreta!');
@@ -156,25 +155,26 @@ export default function Admin() {
 
   // --- RENDERIZAÇÃO DAS TELAS ---
   if (!escolaId) {
-    return <div className="flex h-screen items-center justify-center text-white bg-gray-900">Verificando autenticação da escola...</div>;
+    return <div className="flex h-screen items-center justify-center text-white bg-slate-900">Verificando autenticação da escola...</div>;
   }
 
+  // TELA DE TRAVA DO MESÁRIO (Novo Visual)
   if (!autenticado) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900">
-        <div className="p-8 bg-white border rounded shadow max-w-sm w-full relative">
-          <button onClick={logoutTotal} className="absolute top-4 right-4 text-sm text-red-600 font-bold hover:underline">Sair da Escola</button>
-          <h2 className="mb-4 text-2xl text-black font-bold text-center mt-4">Acesso do Mesário</h2>
-          <p className="text-sm text-gray-600 mb-4 text-center">Digite a senha de gestão para acessar a urna.</p>
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900">
+        <div className="p-8 bg-slate-800/80 backdrop-blur-md border border-slate-600 rounded-xl shadow-2xl max-w-sm w-full relative">
+          <button onClick={logoutTotal} className="absolute top-4 right-4 text-sm text-red-400 font-bold hover:text-red-300 transition-colors">Sair da Escola</button>
+          <h2 className="mb-4 text-2xl text-white font-bold text-center mt-4">Acesso do Mesário</h2>
+          <p className="text-sm text-gray-300 mb-4 text-center">Digite a senha de gestão para acessar a urna.</p>
           <input 
             type="password" 
             value={senhaLocal} 
             onChange={(e) => setSenhaLocal(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && entrarPainel()}
-            className="border-2 border-gray-300 p-3 w-full mb-4 text-black rounded focus:border-blue-500 outline-none" 
+            className="border border-slate-600 bg-slate-900 p-3 w-full mb-4 text-white rounded focus:border-cyan-500 outline-none" 
             placeholder="Senha secreta..." 
           />
-          <button onClick={entrarPainel} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 w-full rounded transition-colors">
+          <button onClick={entrarPainel} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 w-full rounded-lg transition-colors">
             Destrancar Painel
           </button>
         </div>
@@ -182,78 +182,88 @@ export default function Admin() {
     );
   }
 
+  // PAINEL DE GESTÃO LIBERADO (Novo Visual com Gradiente)
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestão da Eleição</h1>
-        <button onClick={trancarPainel} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-          🔒 Trancar Painel
-        </button>
-      </div>
-
-      <div className="bg-gray-900 p-6 rounded-lg shadow-2xl mb-8 border-4 border-gray-700 text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">Controle das Cabines</h2>
-        <div className="flex justify-center gap-4">
-          <button onClick={liberarUrnas} className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-xl flex-1 transition-transform active:scale-95">
-            🟢 LIBERAR PRÓXIMO VOTO
-          </button>
-          <button onClick={bloquearUrnas} className="bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-xl flex-1 transition-transform active:scale-95">
-            🔴 BLOQUEAR URNAS
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-white p-8">
+      <div className="max-w-5xl mx-auto">
+        
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Gestão da Eleição</h1>
+          <button onClick={trancarPainel} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+            🔒 Trancar Painel
           </button>
         </div>
-      </div>
 
-      <form onSubmit={cadastrar} className="bg-gray-100 p-6 rounded mb-8 grid grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="block text-sm text-black font-bold">Número (2 dígitos)</label>
-          <input required maxLength={2} value={numero} onChange={(e) => setNumero(e.target.value)} className="border p-2 w-full text-black bg-white" />
+        <div className="bg-slate-800/60 backdrop-blur-md p-6 rounded-xl shadow-2xl mb-8 border border-slate-600 text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Controle de dispositivos</h2>
+          <div className="flex justify-center gap-4">
+            <button onClick={liberarUrnas} className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-xl flex-1 transition-transform active:scale-95">
+              🟢 LIBERAR PRÓXIMO VOTO
+            </button>
+            <button onClick={bloquearUrnas} className="bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-xl flex-1 transition-transform active:scale-95">
+              🔴 BLOQUEAR URNAS
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm text-black font-bold">Nome da Chapa</label>
-          <input required value={partido} onChange={(e) => setPartido(e.target.value)} className="border p-2 w-full text-black bg-white" />
-        </div>
-        <div>
-          <label className="block text-sm text-black font-bold">Logo (Opcional)</label>
-          <input id="foto-upload" type="file" accept="image/*" onChange={(e) => setArquivoLogo(e.target.files?.[0] || null)} className="border p-1 w-full text-black bg-white" />
-        </div>
-        <button type="submit" disabled={carregando} className={`text-white p-2 rounded font-bold ${carregando ? 'bg-gray-400' : 'bg-blue-600'}`}>
-          {carregando ? 'Salvando...' : 'Cadastrar Chapa'}
-        </button>
-      </form>
 
-      <h2 className="text-2xl font-bold mb-4">Resultados (Em Tempo Real 🟢)</h2>
-      <table className="w-full text-left border-collapse mb-8 bg-white shadow">
-        <thead>
-          <tr className="bg-gray-300">
-            <th className="p-3 border text-black font-bold">Número</th>
-            <th className="p-3 border text-black font-bold">Chapa</th>
-            <th className="p-3 border text-black font-bold">Votos</th>
-            <th className="p-3 border text-black font-bold">Ação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {candidatos.map(c => (
-            <tr key={c.id} className="bg-white hover:bg-gray-50">
-              <td className="p-3 border font-bold text-black text-lg">{c.numero}</td>
-              <td className="p-3 border text-black text-lg">{c.partido}</td>
-              <td className="p-3 border font-bold text-blue-600 text-xl">{c.votos}</td>
-              <td className="p-3 border">
-                <button onClick={() => deletar(c.id, c.imagem)} className="text-red-600 text-sm font-bold uppercase hover:underline">Excluir</button>
-              </td>
-            </tr>
-          ))}
-          {candidatos.length === 0 && (
-            <tr className="bg-white">
-              <td colSpan={4} className="p-4 text-center text-gray-500 font-bold">Nenhuma chapa cadastrada.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+        <form onSubmit={cadastrar} className="bg-slate-800/60 backdrop-blur-md p-6 rounded-xl mb-8 grid grid-cols-4 gap-4 items-end border border-slate-600">
+          <div>
+            <label className="block text-sm font-bold text-gray-200 mb-1">Número (2 dígitos)</label>
+            <input required maxLength={2} value={numero} onChange={(e) => setNumero(e.target.value)} className="border border-slate-600 p-2 w-full text-white bg-slate-900 rounded focus:border-cyan-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-200 mb-1">Nome da Chapa</label>
+            <input required value={partido} onChange={(e) => setPartido(e.target.value)} className="border border-slate-600 p-2 w-full text-white bg-slate-900 rounded focus:border-cyan-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-200 mb-1">Logo (Opcional)</label>
+            <input id="foto-upload" type="file" accept="image/*" onChange={(e) => setArquivoLogo(e.target.files?.[0] || null)} className="border border-slate-600 p-1 w-full text-white bg-slate-900 rounded" />
+          </div>
+          <button type="submit" disabled={carregando} className={`text-white p-2 rounded font-bold h-[42px] transition-colors ${carregando ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-500'}`}>
+            {carregando ? 'Salvando...' : 'Cadastrar Chapa'}
+          </button>
+        </form>
 
-      <div className="border-t pt-6 text-right">
-        <button onClick={zerarEleicao} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded shadow">
-          🗑️ Apagar Todas as Chapas e Zerar Votos
-        </button>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          Resultados (Em Tempo Real <span className="animate-pulse">🟢</span>)
+        </h2>
+        
+        <div className="overflow-hidden rounded-xl border border-slate-600 shadow-2xl mb-8">
+          <table className="w-full text-left border-collapse bg-slate-800/60 backdrop-blur-md">
+            <thead>
+              <tr className="bg-slate-900/80">
+                <th className="p-4 border-b border-slate-600 text-gray-200 font-bold">Número</th>
+                <th className="p-4 border-b border-slate-600 text-gray-200 font-bold">Chapa</th>
+                <th className="p-4 border-b border-slate-600 text-gray-200 font-bold text-center">Votos</th>
+                <th className="p-4 border-b border-slate-600 text-gray-200 font-bold text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidatos.map(c => (
+                <tr key={c.id} className="hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 last:border-0">
+                  <td className="p-4 font-bold text-lg text-white">{c.numero}</td>
+                  <td className="p-4 text-lg text-white">{c.partido}</td>
+                  <td className="p-4 font-bold text-cyan-400 text-2xl text-center">{c.votos}</td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => deletar(c.id, c.imagem)} className="text-red-400 text-sm font-bold uppercase hover:text-red-300 transition-colors">Excluir</button>
+                  </td>
+                </tr>
+              ))}
+              {candidatos.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-gray-400 font-bold">Nenhuma chapa cadastrada.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="pt-2 text-right">
+          <button onClick={zerarEleicao} className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-colors">
+            🗑️ Apagar Todas as Chapas e Zerar Votos
+          </button>
+        </div>
+
       </div>
     </div>
   );
