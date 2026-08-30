@@ -67,7 +67,7 @@ export default function Admin() {
 
   // --- FUNÇÕES DE LOGIN LOCAL (TRAVA DO MESÁRIO) ---
   const entrarPainel = () => {
-    if (senhaLocal === (process.env.NEXT_PUBLIC_SENHA_ADMIN || 'gremio123')) {
+    if (senhaLocal === (process.env.NEXT_PUBLIC_SENHA_ADMIN)) {
       setAutenticado(true);
     } else {
       alert('Senha incorreta!');
