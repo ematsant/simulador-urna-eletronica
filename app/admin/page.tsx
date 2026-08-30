@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { validarSenhaAdmin } from './actions'; // 👈 Nossa nova ponte de segurança
 
 export default function Admin() {
   // 1. Estados de Autenticação
@@ -64,9 +65,12 @@ export default function Admin() {
     };
   }, [escolaId, autenticado]);
 
-  // --- FUNÇÕES DE LOGIN LOCAL (TRAVA DO MESÁRIO) ---
-  const entrarPainel = () => {
-    if (senhaLocal === (process.env.NEXT_PUBLIC_SENHA_ADMIN || 'gremio123')) {
+  // --- FUNÇÕES DE LOGIN LOCAL (TRAVA DO MESÁRIO 100% SEGURA) ---
+  const entrarPainel = async () => {
+    // 👈 Agora o navegador pergunta para o servidor se a senha está certa, sem nunca saber qual é a verdadeira
+    const senhaValida = await validarSenhaAdmin(senhaLocal);
+    
+    if (senhaValida) {
       setAutenticado(true);
     } else {
       alert('Senha incorreta!');
@@ -158,7 +162,7 @@ export default function Admin() {
     return <div className="flex h-screen items-center justify-center text-white bg-slate-900">Verificando autenticação da escola...</div>;
   }
 
-  // TELA DE TRAVA DO MESÁRIO (Novo Visual)
+  // TELA DE TRAVA DO MESÁRIO 
   if (!autenticado) {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900">
@@ -182,7 +186,7 @@ export default function Admin() {
     );
   }
 
-  // PAINEL DE GESTÃO LIBERADO (Novo Visual com Gradiente)
+  // PAINEL DE GESTÃO LIBERADO 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-white p-8">
       <div className="max-w-5xl mx-auto">
