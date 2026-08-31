@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { validarSenhaAdmin } from './actions'; // 👈 Nossa nova ponte de segurança
+import { validarSenhaAdmin } from './actions'; 
 
 export default function Admin() {
   // 1. Estados de Autenticação
@@ -67,7 +67,6 @@ export default function Admin() {
 
   // --- FUNÇÕES DE LOGIN LOCAL (TRAVA DO MESÁRIO 100% SEGURA) ---
   const entrarPainel = async () => {
-    // 👈 Agora o navegador pergunta para o servidor se a senha está certa, sem nunca saber qual é a verdadeira
     const senhaValida = await validarSenhaAdmin(senhaLocal);
     
     if (senhaValida) {
@@ -157,6 +156,24 @@ export default function Admin() {
     else alert('🔴 Urnas bloqueadas com sucesso!');
   };
 
+  // 👇 Função de criar cabine separada corretamente 👇
+  const adicionarCabine = async () => {
+    const num = prompt('Digite o número da nova cabine que deseja criar (ex: 1, 2, 3):');
+    if (!num) return;
+    
+    const { error } = await supabase.from('controle_urnas').insert({
+      escola_id: escolaId,
+      numero_cabine: parseInt(num),
+      status: 'bloqueada'
+    });
+
+    if (error) {
+      alert('Erro ao criar cabine: ' + error.message);
+    } else {
+      alert(`✅ Cabine ${num} criada com sucesso! Você já pode acessá-la usando /urna?cabine=${num}`);
+    }
+  };
+
   // --- RENDERIZAÇÃO DAS TELAS ---
   if (!escolaId) {
     return <div className="flex h-screen items-center justify-center text-white bg-slate-900">Verificando autenticação da escola...</div>;
@@ -208,6 +225,11 @@ export default function Admin() {
               🔴 BLOQUEAR URNAS
             </button>
           </div>
+          
+          {/* 👇 Botão Adicionar Cabine no lugar certo 👇 */}
+          <button onClick={adicionarCabine} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-8 rounded-lg shadow-lg text-lg mt-4 transition-transform active:scale-95">
+            ➕ Adicionar Nova Cabine
+          </button>
         </div>
 
         <form onSubmit={cadastrar} className="bg-slate-800/60 backdrop-blur-md p-6 rounded-xl mb-8 grid grid-cols-4 gap-4 items-end border border-slate-600">

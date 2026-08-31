@@ -8,11 +8,11 @@ function UrnaContent() {
   const [candidato, setCandidato] = useState<any>(null);
   const [votou, setVotou] = useState(false);
   const [erro, setErro] = useState('');
-  
+
   // Estados de Segurança e Controle Remoto
   const [statusUrna, setStatusUrna] = useState('bloqueada');
   const [escolaId, setEscolaId] = useState('');
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const cabineId = parseInt(searchParams.get('cabine') || '1');
@@ -25,7 +25,7 @@ function UrnaContent() {
         window.location.href = '/'; 
         return;
       }
-      
+
       const userEscola = session.user.id;
       setEscolaId(userEscola);
 
@@ -39,11 +39,8 @@ function UrnaContent() {
       if (data) {
         setStatusUrna(data.status);
       } else {
-        await supabase.from('controle_urnas').insert({
-          escola_id: userEscola,
-          numero_cabine: cabineId,
-          status: 'bloqueada'
-        });
+        // Em vez de criar no banco, o sistema agora barra a cabine falsa
+        setStatusUrna('inexistente');
       }
     };
     setup();
@@ -61,7 +58,7 @@ function UrnaContent() {
         (payload) => {
           if (!payload.new.numero_cabine || payload.new.numero_cabine === cabineId) {
             setStatusUrna(payload.new.status);
-            
+
             if (payload.new.status === 'liberada') {
               setNumero('');
               setCandidato(null);
@@ -102,7 +99,7 @@ function UrnaContent() {
       .eq('numero', num)
       .eq('escola_id', escolaId) 
       .single();
-      
+
     if (data) {
       setCandidato(data);
       setErro('');
@@ -129,13 +126,14 @@ function UrnaContent() {
   const confirma = useCallback(async () => {
     if (!numero && !erro) return;
     playSound('confirma'); 
-    
+
     if (candidato) {
-      await supabase.from('candidatos').update({ votos: candidato.votos + 1 }).eq('id', candidato.id);
+      // 👈 Agora a urna manda o servidor processar a fila, sem risco de perder votos simultâneos
+      await supabase.rpc('incrementar_voto', { candidato_id: candidato.id });
     }
-    
+
     setVotou(true);
-    
+
     setTimeout(async () => {
       await supabase.from('controle_urnas')
         .update({ status: 'bloqueada' })
@@ -145,8 +143,8 @@ function UrnaContent() {
   }, [numero, erro, candidato, escolaId, cabineId]);
 
   useEffect(() => {
-    if (statusUrna === 'bloqueada') return; 
-    
+    if (statusUrna === 'bloqueada' || statusUrna === 'inexistente') return; 
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') handleTecla(e.key);
       else if (e.key === 'Enter') confirma();
@@ -166,9 +164,34 @@ function UrnaContent() {
     window.location.href = '/'; 
   };
 
+  // --------------------------------------------------------
+  // TELA DE CABINE INEXISTENTE (Contra fraudes de URL)
+  // --------------------------------------------------------
+  if (statusUrna === 'inexistente') {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-900 text-white relative">
+        <button 
+          onClick={fazerLogout} 
+          className="absolute top-8 right-8 bg-gray-700 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-colors border-2 border-gray-600"
+        >
+          Sair da Conta
+        </button>
+
+        <div className="text-center bg-gray-800 p-12 rounded-xl shadow-2xl border-4 border-red-600">
+          <div className="text-6xl mb-6">⚠️</div>
+          <h1 className="text-4xl font-bold mb-4 text-red-500">Cabine Inválida</h1>
+          <p className="text-xl text-gray-300">A cabine {cabineId} não foi registrada.</p>
+          <p className="mt-4 text-sm text-gray-500 font-bold">Solicite ao mesário a criação desta cabine no Painel.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------
+  // TELA DE URNA BLOQUEADA
+  // --------------------------------------------------------
   if (statusUrna === 'bloqueada') {
     return (
-      // 👇 A mágica do gradiente acontece aqui na classe bg-gradient-to-br 👇
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-white relative">
         <button 
           onClick={fazerLogout} 
@@ -190,7 +213,7 @@ function UrnaContent() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-gray-200 text-black overflow-hidden">
       <div className="flex bg-gray-100 p-8 rounded-lg shadow-2xl border-4 border-gray-300 transform scale-50 sm:scale-75 md:scale-90 lg:scale-125 xl:scale-150 origin-center transition-transform duration-300">
-        
+
         <div className="w-[450px] min-h-[420px] bg-gray-50 border-2 border-gray-400 p-6 flex flex-col justify-between">
           {votou ? (
             <div className="flex-1 flex items-center justify-center text-5xl font-bold text-black">FIM</div>
@@ -200,7 +223,7 @@ function UrnaContent() {
                 <p className="text-sm font-bold uppercase text-black">Seu voto para</p>
                 <h2 className="text-2xl font-bold text-center mt-2 text-black">Grêmio Estudantil</h2>
               </div>
-              
+
               <div className="flex items-center space-x-2 my-2">
                 <span className="text-sm text-black">Número:</span>
                 <div className="flex space-x-1">
