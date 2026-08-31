@@ -1,9 +1,11 @@
 'use server';
 
 export async function validarSenhaAdmin(senhaDigitada: string) {
-  // Como este arquivo tem 'use server', ele consegue ler a SENHA_ADMIN com total segurança
-  const senhaOficial = process.env.SENHA_ADMIN;
+  // 1. Atraso proposital de 3 segundos (Proteção contra Força Bruta)
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  // 2. Verificação da senha
+  const senhaCorreta = process.env.SENHA_ADMIN;
   
-  // Retorna verdadeiro se a senha estiver certa, e falso se estiver errada
-  return senhaDigitada === senhaOficial;
+  return senhaDigitada === senhaCorreta;
 }

@@ -8,6 +8,7 @@ function UrnaContent() {
   const [candidato, setCandidato] = useState<any>(null);
   const [votou, setVotou] = useState(false);
   const [erro, setErro] = useState('');
+  const [processando, setProcessando] = useState(false);
 
   // Estados de Segurança e Controle Remoto
   const [statusUrna, setStatusUrna] = useState('bloqueada');
@@ -39,7 +40,6 @@ function UrnaContent() {
       if (data) {
         setStatusUrna(data.status);
       } else {
-        // Em vez de criar no banco, o sistema agora barra a cabine falsa
         setStatusUrna('inexistente');
       }
     };
@@ -81,10 +81,10 @@ function UrnaContent() {
   };
 
   const handleTecla = useCallback((valor: string) => {
-    if (votou || numero.length >= 2) return;
+    if (votou || numero.length >= 2 || processando) return;
     playSound('tecla');
     setNumero((prev) => prev + valor);
-  }, [votou, numero]);
+  }, [votou, numero, processando]);
 
   useEffect(() => {
     if (numero.length === 2) {
@@ -124,23 +124,44 @@ function UrnaContent() {
   }, []);
 
   const confirma = useCallback(async () => {
-    if (!numero && !erro) return;
+    // 1. Mantém a trava dupla intacta
+    if ((!numero && !erro) || processando || votou) return;
+    
+    setProcessando(true); 
     playSound('confirma'); 
 
-    if (candidato) {
-      // 👈 Agora a urna manda o servidor processar a fila, sem risco de perder votos simultâneos
-      await supabase.rpc('incrementar_voto', { candidato_id: candidato.id });
+    try {
+      // 2. Tenta enviar o voto para o Supabase
+      if (candidato) {
+        const { error: erroVoto } = await supabase.rpc('incrementar_voto', { candidato_id: candidato.id });
+        // Se houver falha de rede ou de permissão, joga para o catch imediatamente
+        if (erroVoto) throw erroVoto; 
+      }
+      
+      // 3. Sucesso! Só mostra "FIM" se a internet estiver funcionando e o voto for salvo
+      setVotou(true); 
+      
+      setTimeout(async () => {
+        try {
+          await supabase.from('controle_urnas')
+            .update({ status: 'bloqueada' })
+            .eq('escola_id', escolaId)
+            .eq('numero_cabine', cabineId);
+        } catch (err) {
+          console.error("Erro ao bloquear urna:", err);
+        } finally {
+          setProcessando(false); // Libera a trava
+        }
+      }, 3000);
+
+    } catch (err) {
+      // 4. Falha na rede! Aborta a operação, limpa a tela e avisa o aluno
+      setNumero('');
+      setCandidato(null);
+      setErro('ERRO DE REDE. CHAME O MESÁRIO');
+      setProcessando(false); 
     }
-
-    setVotou(true);
-
-    setTimeout(async () => {
-      await supabase.from('controle_urnas')
-        .update({ status: 'bloqueada' })
-        .eq('escola_id', escolaId)
-        .eq('numero_cabine', cabineId);
-    }, 3000);
-  }, [numero, erro, candidato, escolaId, cabineId]);
+  }, [numero, erro, candidato, escolaId, cabineId, processando, votou]);
 
   useEffect(() => {
     if (statusUrna === 'bloqueada' || statusUrna === 'inexistente') return; 
@@ -156,17 +177,11 @@ function UrnaContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleTecla, confirma, corrige, branco, statusUrna]);
 
-  // --------------------------------------------------------
-  // Função de Logout Corrigida (Força a saída)
-  // --------------------------------------------------------
   const fazerLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/'; 
   };
 
-  // --------------------------------------------------------
-  // TELA DE CABINE INEXISTENTE (Contra fraudes de URL)
-  // --------------------------------------------------------
   if (statusUrna === 'inexistente') {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-900 text-white relative">
@@ -187,9 +202,6 @@ function UrnaContent() {
     );
   }
 
-  // --------------------------------------------------------
-  // TELA DE URNA BLOQUEADA
-  // --------------------------------------------------------
   if (statusUrna === 'bloqueada') {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 text-white relative">
